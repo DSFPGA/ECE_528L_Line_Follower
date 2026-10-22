@@ -156,6 +156,8 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_RED);
             Motor_Stop();
+            Clock_Delay1us(100);
+            Motor_Backward(PWM_SLOW, PWM_SLOW);
         }
         break;
 
@@ -210,11 +212,12 @@ void Timer_A1_Periodic_Task(void)
                 Detect_Line_Position(Reflectance_Sensor_Data);
             }
 
-            if (uint8_global_turn_count == 10)
+            if (uint8_global_turn_count == 3)
             {
                 uint8_global_turn_status = 1;
                 uint8_global_turn_count = 0;
             }
+            //printf("uint8_global_turn_status = %d, uint8_global_turn_count = %d, Reflectance_Sensor_Data = %02X, enum_turn_direction = %02X\n", uint8_global_turn_status, uint8_global_turn_count, Reflectance_Sensor_Data, enum_turn_direction);
         }
 
         else
