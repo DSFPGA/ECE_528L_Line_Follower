@@ -33,9 +33,9 @@
 
 // Initialize constant PWM duty cycle values for the motors
 #define PWM_NOMINAL 2500
-#define PWM_FAST 1500
-#define PWM_SLOW 1000
-#define PWM_SUPER_SLOW 500
+#define PWM_FAST 2000
+#define PWM_SLOW 1500
+#define PWM_SUPER_SLOW 1000
 
 // Initialize a global variable for Timer A1 to keep track of elapsed time in milliseconds
 static uint32_t Timer_A1_ms_elapsed = 0;
@@ -49,7 +49,8 @@ typedef enum {
     LEFT_TURN = 0xF8,
     RIGHT_TURN = 0x1F,
     T_INTERSECTION = 0xFF,
-    DEAD_END = 0x00
+    DEAD_END = 0x00,
+    CHECK_FOR_TURN = 0xAA
 } enum_Line_Position;
 
 // Create global variables to check if robot is in the process of turning
@@ -76,8 +77,8 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
         {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_GREEN);
-            Motor_Stop();
-            Clock_Delay1us(100);
+            //Motor_Stop();
+            //Clock_Delay1us(100);
             Motor_Forward(PWM_SLOW, PWM_SLOW);
         }
         break;
@@ -87,7 +88,7 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_YELLOW);
             Motor_Stop();
-            Clock_Delay1us(100);
+            Clock_Delay1us(500);
             Motor_Forward(PWM_SLOW, PWM_SUPER_SLOW);
         }
         break;
@@ -97,7 +98,7 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_PINK);
             Motor_Stop();
-            Clock_Delay1us(100);
+            Clock_Delay1us(500);
             Motor_Forward(PWM_SUPER_SLOW, PWM_SLOW);
         }
         break;
@@ -107,8 +108,8 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_WHITE);
             Motor_Stop();
-            Clock_Delay1us(100);
-            Motor_Forward(PWM_SUPER_SLOW, PWM_SLOW);
+            Clock_Delay1us(500);
+            Motor_Forward(PWM_SLOW, PWM_FAST);
         }
         break;
 
@@ -117,8 +118,8 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_SKY_BLUE);
             Motor_Stop();
-            Clock_Delay1us(100);
-            Motor_Forward(PWM_SLOW, PWM_SUPER_SLOW);
+            Clock_Delay1us(500);
+            Motor_Forward(PWM_FAST, PWM_SLOW);
         }
         break;
 
@@ -127,8 +128,9 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_ON);
             LED2_Output(RGB_LED_WHITE);
             Motor_Stop();
-            Clock_Delay1us(100);
-            Motor_Left(PWM_SLOW, PWM_FAST);
+            Clock_Delay1us(500);
+            Motor_Left(PWM_SUPER_SLOW, PWM_SLOW);
+            Clock_Delay1us(500);
         }
         break;
 
@@ -137,8 +139,9 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
             LED1_Output(RED_LED_ON);
             LED2_Output(RGB_LED_SKY_BLUE);
             Motor_Stop();
-            Clock_Delay1us(100);
-            Motor_Right(PWM_FAST, PWM_SLOW);
+            Clock_Delay1us(500);
+            Motor_Right(PWM_SLOW, PWM_SUPER_SLOW);
+            Clock_Delay1us(500);
         }
         break;
 
@@ -146,8 +149,8 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
         {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_BLUE);
-            Clock_Delay1us(100);
             Motor_Left(PWM_FAST, PWM_FAST);
+            Clock_Delay1us(500);
         }
         break;
 
@@ -155,17 +158,27 @@ void Detect_Line_Position(uint8_t reflectance_sensor_data) {
         {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_RED);
+            //Motor_Stop();
+            //Clock_Delay1us(100);
+            //Motor_Backward(PWM_SLOW, PWM_SLOW);
             Motor_Stop();
-            Clock_Delay1us(100);
-            Motor_Backward(PWM_SLOW, PWM_SLOW);
         }
         break;
+
+    case CHECK_FOR_TURN:
+        {
+            LED1_Output(RED_LED_OFF);
+            LED2_Output(RGB_LED_OFF);
+            Motor_Stop();
+            Clock_Delay1us(500);
+        }
 
     default:
         {
             LED1_Output(RED_LED_OFF);
             LED2_Output(RGB_LED_OFF);
-            Motor_Forward(PWM_SLOW, PWM_SLOW);
+            Motor_Forward(PWM_SUPER_SLOW, PWM_SUPER_SLOW);
+            Clock_Delay1us(500);
         }
         break;
     }
@@ -186,33 +199,38 @@ void Timer_A1_Periodic_Task(void)
     if ((Timer_A1_ms_elapsed % 10) == 1)
     {
         uint8_t Reflectance_Sensor_Data = Reflectance_Sensor_End();
+        Motor_Stop();
 
         if (uint8_global_turn_status == 0)
         {
 
             if (Reflectance_Sensor_Data == LEFT_TURN)
             {
+                Detect_Line_Position(CHECK_FOR_TURN);
                 uint8_global_turn_count++;
                 enum_turn_direction = LEFT_TURN;
             }
 
             else if (Reflectance_Sensor_Data == RIGHT_TURN)
             {
+                Detect_Line_Position(CHECK_FOR_TURN);
                 uint8_global_turn_count++;
                 enum_turn_direction = RIGHT_TURN;
             }
 
             else if (Reflectance_Sensor_Data == T_INTERSECTION)
             {
+                Detect_Line_Position(CHECK_FOR_TURN);
                 uint8_global_turn_count++;
                 enum_turn_direction = T_INTERSECTION;
             }
             else
             {
                 Detect_Line_Position(Reflectance_Sensor_Data);
+                uint8_global_turn_count = 0;
             }
 
-            if (uint8_global_turn_count == 3)
+            if (uint8_global_turn_count == 15)
             {
                 uint8_global_turn_status = 1;
                 uint8_global_turn_count = 0;
